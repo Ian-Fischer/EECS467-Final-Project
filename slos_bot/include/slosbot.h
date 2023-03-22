@@ -7,6 +7,8 @@ class SLOSBot
 {
     public:
         SLOSBot();
+
+        void execute_sm();
     private:
         enum class State {
             SEARCH_FOR_OBJECT,
@@ -22,7 +24,6 @@ class SLOSBot
 
         void search_for_object();
 
-        void execute_sm();
 
         void depth_img_cb(sensor_msgs::ImageConstPtr img);
         void rgb_img_cb(sensor_msgs::ImageConstPtr img);

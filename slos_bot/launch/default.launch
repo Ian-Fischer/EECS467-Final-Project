@@ -4,5 +4,5 @@
 		<node pkg="lcm_to_ros" type="ODOMETRY_republisher" respawn="false" name="ODOMETRY_republisher" output="screen"/>
 		<node pkg="lcm_to_ros" type="MBOT_MOTOR_COMMAND_republisher" respawn="false" name="MBOT_MOTOR_COMMAND_republisher" output="screen"/>
 	</group>
-	<node type="slos_bot_node">
+	<node pkg="slos_bot" type="slos_bot_node" name="slos_bot_node"/>
 </launch>
