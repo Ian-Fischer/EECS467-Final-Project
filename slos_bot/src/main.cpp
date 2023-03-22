@@ -4,7 +4,6 @@
 #include "slosbot.h"
 #include "lcm_to_ros/mbot_motor_command_t.h"
 #include "cv_bridge/cv_bridge.h"
-#include <opencv2/opencv.hpp>
 
 SLOSBot::SLOSBot() :
  motor_command_pub( nh.advertise<lcm_to_ros::mbot_motor_command_t>("lcm_to_ros/MBOT_MOTOR_COMMAND", 1)),
@@ -15,20 +14,29 @@ SLOSBot::SLOSBot() :
 void SLOSBot::depth_img_cb(sensor_msgs::ImageConstPtr img) {}
 void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
     std::cout << "recieved im" << std::endl;
-    //cv_bridge::CvImagePtr im;
-    //cv::Mat a = im->image;
+    try {
+        cv_bridge::CvImagePtr im;
+        im = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
+        cur_rgb = im->image;
+    } catch(cv_bridge::Exception) {
+        std::cout << "Could not convert image" << std::endl;
+    }
+
     
 }
 
 void SLOSBot::search_for_object() {
     // get image
+    if(cur_rgb.rows == 0 || cur_rgb.cols == 0) return;
 
     // hsv segmentation
+    cv::imshow("img", cur_rgb);
+    cv::waitKey(0);
 
     // tell the mbot to rotate
-    lcm_to_ros::mbot_motor_command_t msg;
-    msg.angular_v = 0.3;
-    motor_command_pub.publish(msg);
+    //lcm_to_ros::mbot_motor_command_t msg;
+    //msg.angular_v = 0.3;
+    //motor_command_pub.publish(msg);
 
 }
 

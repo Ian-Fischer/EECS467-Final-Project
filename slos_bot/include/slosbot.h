@@ -2,6 +2,7 @@
 #include "ros/ros.h"
 #include "sensor_msgs/Image.h"
 #include <image_transport/image_transport.h>
+#include <opencv2/opencv.hpp>
 
 class SLOSBot 
 {
@@ -21,6 +22,9 @@ class SLOSBot
 
         ros::Subscriber depth_img_sub;
         ros::Subscriber rgb_img_sub;
+
+        cv::Mat cur_rgb;
+        cv::Mat cur_depth;
 
         void search_for_object();
 
