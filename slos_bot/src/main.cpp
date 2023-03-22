@@ -83,14 +83,14 @@ void SLOSBot::search_for_object() {
     } else {
         // tell the mbot to rotate
         lcm_to_ros::mbot_motor_command_t msg;
-        msg.angular_v = 0.3;
+        msg.angular_v = 1.0;
         motor_command_pub.publish(msg);
     }
 
-    imshow("post filter", bin_img);
-    imshow("pre filter", debug_img);
-    imwrite("/home/ashwin/Desktop/peepee.jpg", cur_rgb);
-    waitKey(10);
+    //imshow("post filter", bin_img);
+    //imshow("pre filter", debug_img);
+    //imwrite("/home/ashwin/Desktop/peepee.jpg", cur_rgb);
+    //waitKey(10);
 
 
 
