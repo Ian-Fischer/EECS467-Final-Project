@@ -75,22 +75,24 @@ void SLOSBot::search_for_object() {
     if(v != detections.end()) {
         auto& [m, h] = *v;
         circle(debug_img, Point(m.m10/m.m00, m.m01/m.m00), 4, Scalar(255, 255, 0), -1);
+
+        // tell the mbot to stop
+        lcm_to_ros::mbot_motor_command_t msg;
+        motor_command_pub.publish(msg);
+
+    } {
+        // tell the mbot to rotate
+        lcm_to_ros::mbot_motor_command_t msg;
+        msg.angular_v = 0.3;
+        motor_command_pub.publish(msg);
     }
 
-
-    //drawContours(debug_img, biggest_hull, -1, Scalar(255, 0, 0), 3);
-
-    
     imshow("post filter", bin_img);
     imshow("pre filter", debug_img);
     imwrite("/home/ashwin/Desktop/peepee.jpg", cur_rgb);
     waitKey(10);
 
 
-    // tell the mbot to rotate
-    //lcm_to_ros::mbot_motor_command_t msg;
-    //msg.angular_v = 0.3;
-    //motor_command_pub.publish(msg);
 
 }
 
