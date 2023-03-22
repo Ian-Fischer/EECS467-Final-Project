@@ -7,7 +7,8 @@ project(slos_bot)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp lcm_to_ros)
+find_package(catkin REQUIRED COMPONENTS roscpp lcm_to_ros cv_bridge)
+find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

@@ -3,6 +3,8 @@
 #include "ros/publisher.h"
 #include "slosbot.h"
 #include "lcm_to_ros/mbot_motor_command_t.h"
+#include "cv_bridge/cv_bridge.h"
+#include <opencv2/opencv.hpp>
 
 SLOSBot::SLOSBot() :
  motor_command_pub( nh.advertise<lcm_to_ros::mbot_motor_command_t>("lcm_to_ros/MBOT_MOTOR_COMMAND", 1)),
@@ -13,6 +15,9 @@ SLOSBot::SLOSBot() :
 void SLOSBot::depth_img_cb(sensor_msgs::ImageConstPtr img) {}
 void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
     std::cout << "recieved im" << std::endl;
+    //cv_bridge::CvImagePtr im;
+    //cv::Mat a = im->image;
+    
 }
 
 void SLOSBot::search_for_object() {
