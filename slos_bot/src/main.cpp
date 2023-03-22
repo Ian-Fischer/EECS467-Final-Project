@@ -26,12 +26,66 @@ void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
 }
 
 void SLOSBot::search_for_object() {
+    using namespace cv;
+    using namespace std;
+
     // get image
     if(cur_rgb.rows == 0 || cur_rgb.cols == 0) return;
 
-    // hsv segmentation
-    cv::imshow("img", cur_rgb);
-    cv::waitKey(0);
+    Mat debug_img = cur_rgb.clone();
+
+    // hsv segmentation //cv::imshow("img", cur_rgb);
+    //cv::waitKey(0);
+    Mat hsv_img;
+    cvtColor(cur_rgb, hsv_img, COLOR_BGR2HSV);
+
+    Mat bin_img(hsv_img.size(), 0); 
+    inRange(hsv_img, Scalar(0, 120, 150), Scalar(10, 255, 255), bin_img);
+
+    // Noise removal with morphology
+    Mat kernel;
+    kernel = getStructuringElement(MORPH_RECT, Size(3, 3));
+    morphologyEx(bin_img, bin_img, MORPH_CLOSE, kernel);
+
+    // each object's contour is a list of points. We need a list of contours
+    vector<vector<Point> > contours; 
+    // The hiearchy contains informations about how objects are nested, we don't need it
+    vector<Vec4i> hierarchy; 
+    // Find the contours and draw all of them (-1)
+    findContours(bin_img, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE, Point(0, 0));
+    //drawContours(debug_img, contours, -1, Scalar(0, 0, 255), 3);
+
+    vector<vector<Point> > hulls(contours.size());
+    for (int i = 0; i < contours.size(); i++) {
+        convexHull(contours[i], hulls[i]);
+    }
+
+    //Compute object angles using moments 
+    vector<tuple<Moments, vector<Point>>> detections;
+    for (auto& hull : hulls) {
+        detections.push_back(std::make_tuple(moments(hull, true), std::move(hull)));
+    }
+    auto v = std::max_element(detections.begin(), detections.end(), 
+        [](auto& t1, auto& t2) {
+            auto &[m1, h1] = t1;
+            auto &[m2, h2] = t2;
+            return m1.m00 < m2.m00;
+        }
+    );
+    if(v != detections.end()) {
+        auto& [m, h] = *v;
+        circle(debug_img, Point(m.m10/m.m00, m.m01/m.m00), 4, Scalar(255, 255, 0), -1);
+    }
+
+
+    //drawContours(debug_img, biggest_hull, -1, Scalar(255, 0, 0), 3);
+
+    
+    imshow("post filter", bin_img);
+    imshow("pre filter", debug_img);
+    imwrite("/home/ashwin/Desktop/peepee.jpg", cur_rgb);
+    waitKey(10);
+
 
     // tell the mbot to rotate
     //lcm_to_ros::mbot_motor_command_t msg;
