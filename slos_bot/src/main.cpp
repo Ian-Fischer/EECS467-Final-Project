@@ -80,7 +80,7 @@ void SLOSBot::search_for_object() {
         lcm_to_ros::mbot_motor_command_t msg;
         motor_command_pub.publish(msg);
 
-    } {
+    } else {
         // tell the mbot to rotate
         lcm_to_ros::mbot_motor_command_t msg;
         msg.angular_v = 0.3;
