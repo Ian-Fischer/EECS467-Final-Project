@@ -10,6 +10,7 @@
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/conversions.h>
 #include <pcl_ros/transforms.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 class SLOSBot 
 {
@@ -35,6 +36,8 @@ class SLOSBot
         cv::Mat cur_depth;
         //sensor_msgs::PointCloud2 cur_pc;
         pcl::PointCloud<pcl::PointXYZ>::Ptr cur_pc;
+
+        pcl::visualization::PCLVisualizer::Ptr viewer;
 
         void search_for_object();
 
