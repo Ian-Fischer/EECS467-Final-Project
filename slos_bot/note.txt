@@ -1,0 +1,13 @@
+apt deps:
+ros-base
+ros-core-dev
+ros-perception
+ros-image-proc
+ros-desktop-full-dev
+ros-stereo-image-proc
+libturbojpeg0-dev
+ros-image-publisher
+ros-image-view
+ros-image-rotate
+pcl-ros-tools
+libpcl-ros-dev
