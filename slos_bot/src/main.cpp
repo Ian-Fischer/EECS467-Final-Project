@@ -12,8 +12,8 @@ SLOSBot::SLOSBot() :
  motor_command_pub( nh.advertise<lcm_to_ros::mbot_motor_command_t>("lcm_to_ros/MBOT_MOTOR_COMMAND", 1)),
  depth_img_sub( nh.subscribe("camera/depth_registered/image_raw", 1, &SLOSBot::depth_img_cb, this) ),
  rgb_img_sub( nh.subscribe("camera/rgb/image_rect_color", 1, &SLOSBot::rgb_img_cb, this) ),
- pointcloud_sub( nh.subscribe("camera/depth_registered/points", 1, &SLOSBot::pointcloud_cb, this) ),
- viewer(new pcl::visualization::PCLVisualizer ("3D Viewer"))
+ pointcloud_sub( nh.subscribe("camera/depth_registered/points", 1, &SLOSBot::pointcloud_cb, this) )
+ //viewer(new pcl::visualization::PCLVisualizer ("3D Viewer"))
 {
 } 
 
@@ -34,7 +34,7 @@ void SLOSBot::pointcloud_cb(sensor_msgs::PointCloud2Ptr pc) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromPCLPointCloud2(pcl_pc2,*temp_cloud);
     cur_pc = temp_cloud;
-    viewer->addPointCloud<pcl::PointXYZ> (cur_pc, "sample cloud");
+    //viewer->addPointCloud<pcl::PointXYZ> (cur_pc, "sample cloud");
 }
 
 void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
@@ -148,7 +148,7 @@ void SLOSBot::execute_sm() {
         ros::spinOnce();
         loop_rate.sleep();
 
-        viewer->spinOnce(10);
+        //viewer->spinOnce(10);
     }
 
 }
