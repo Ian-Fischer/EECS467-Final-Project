@@ -122,14 +122,23 @@ void SLOSBot::search_for_object() {
         try {
 
             auto &p = cur_pc->at(m.m10/m.m00, m.m01/m.m00);
+
+            auto min_pt_3d = cur_pc->at(search_pt_left.x, search_pt_left.y);
+            auto max_pt_3d = cur_pc->at(search_pt_right.x, search_pt_right.y);
+            float width = max_pt_3d.x - min_pt_3d.x;
+            //std::cout << "apparent width " << max_pt_3d.x - min_pt_3d.x << std::endl;
+
+            // tell the mbot to stop
+            if(width > 0.35 && width < 0.45) {
+                lcm_to_ros::mbot_motor_command_t msg;
+                motor_command_pub.publish(msg);
+            }
+
             #ifdef DEBUG
             viewer->removeShape("sphere");
             viewer->addSphere(pcl::PointXYZ(p.x, p.y, p.z), 0.01, 1.0, 1.0, 0.0);
-            auto min_pt_3d = cur_pc->at(search_pt_left.x, search_pt_left.y);
-            auto max_pt_3d = cur_pc->at(search_pt_right.x, search_pt_right.y);
             viewer->removeShape("sphere1");
             viewer->addSphere(min_pt_3d, 0.01, 1.0, 1.0, 0.0, "sphere1");
-
             viewer->removeShape("sphere2");
             viewer->addSphere(max_pt_3d, 0.01, 1.0, 1.0, 0.0, "sphere2");
             #endif
@@ -138,9 +147,6 @@ void SLOSBot::search_for_object() {
         }
 
 
-        // tell the mbot to stop
-        lcm_to_ros::mbot_motor_command_t msg;
-        motor_command_pub.publish(msg);
 
     } else {
         // tell the mbot to rotate
