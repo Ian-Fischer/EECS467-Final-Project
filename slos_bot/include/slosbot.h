@@ -12,7 +12,7 @@
 #include <pcl_ros/transforms.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#define DEBUG
+//#define DEBUG
 
 class SLOSBot 
 {

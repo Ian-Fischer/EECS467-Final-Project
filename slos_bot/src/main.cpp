@@ -14,11 +14,15 @@ SLOSBot::SLOSBot() :
  depth_img_sub( nh.subscribe("camera/depth_registered/image_raw", 1, &SLOSBot::depth_img_cb, this) ),
  rgb_img_sub( nh.subscribe("camera/rgb/image_rect_color", 1, &SLOSBot::rgb_img_cb, this) ),
  pointcloud_sub( nh.subscribe("camera/depth_registered/points", 1, &SLOSBot::pointcloud_cb, this) ),
- cur_pc(new pcl::PointCloud<pcl::PointXYZRGB>),
- viewer(new pcl::visualization::PCLVisualizer ("3D Viewer"))
+ cur_pc(new pcl::PointCloud<pcl::PointXYZRGB>)
+ #ifdef DEBUG
+ ,viewer(new pcl::visualization::PCLVisualizer ("3D Viewer"))
+ #endif
 {
-   viewer->addPointCloud (cur_pc, "sample cloud");
-   viewer->addCoordinateSystem();
+    #ifdef DEBUG
+    viewer->addPointCloud (cur_pc, "sample cloud");
+    viewer->addCoordinateSystem();
+    #endif
    //viewer->addSphere(pcl::PointXYZ(0.0, 0.0, 0.0), 0.01, 1.0, 1.0, 0.0);
 } 
 
@@ -38,8 +42,10 @@ void SLOSBot::pointcloud_cb(sensor_msgs::PointCloud2Ptr pc) {
     pcl_conversions::toPCL(*pc,pcl_pc2);
     //pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromPCLPointCloud2(pcl_pc2,*cur_pc);
+    #ifdef DEBUG
     viewer->removePointCloud("sample cloud");
     viewer->addPointCloud(cur_pc, "sample cloud");
+    #endif
 }
 
 void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
@@ -115,12 +121,10 @@ void SLOSBot::search_for_object() {
         // attempt to compute the width of the object
         try {
 
-        auto &p = cur_pc->at(m.m10/m.m00, m.m01/m.m00);
-        viewer->removeShape("sphere");
-        viewer->addSphere(pcl::PointXYZ(p.x, p.y, p.z), 0.01, 1.0, 1.0, 0.0);
-        //std::uint32_t rgb = ((std::uint32_t)255 << 16 | (std::uint32_t)255 << 8 | (std::uint32_t)0);
-        //p.rgb = *reinterpret_cast<float*>(&rgb); 
-
+            auto &p = cur_pc->at(m.m10/m.m00, m.m01/m.m00);
+            #ifdef DEBUG
+            viewer->removeShape("sphere");
+            viewer->addSphere(pcl::PointXYZ(p.x, p.y, p.z), 0.01, 1.0, 1.0, 0.0);
             auto min_pt_3d = cur_pc->at(search_pt_left.x, search_pt_left.y);
             auto max_pt_3d = cur_pc->at(search_pt_right.x, search_pt_right.y);
             viewer->removeShape("sphere1");
@@ -128,8 +132,8 @@ void SLOSBot::search_for_object() {
 
             viewer->removeShape("sphere2");
             viewer->addSphere(max_pt_3d, 0.01, 1.0, 1.0, 0.0, "sphere2");
+            #endif
 
-            //std::cout << max_y - min_y << std::endl;
         } catch(...) {
         }
 
@@ -145,11 +149,13 @@ void SLOSBot::search_for_object() {
         motor_command_pub.publish(msg);
     }
 
+    #ifdef DEBUG
     imshow("post filter", bin_img);
     imshow("pre filter", debug_img);
     imshow("cur depth", cur_depth);
     //imwrite("/home/ashwin/Desktop/peepee.jpg", cur_rgb);
     waitKey(10);
+    #endif
 
 
 }
@@ -168,7 +174,9 @@ void SLOSBot::execute_sm() {
         ros::spinOnce();
         loop_rate.sleep();
 
+        #ifdef DEBUG
         viewer->spinOnce(10);
+        #endif
     }
 
 }
