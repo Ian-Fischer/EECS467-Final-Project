@@ -126,10 +126,12 @@ void SLOSBot::search_for_object() {
             auto min_pt_3d = cur_pc->at(search_pt_left.x, search_pt_left.y);
             auto max_pt_3d = cur_pc->at(search_pt_right.x, search_pt_right.y);
             float width = max_pt_3d.x - min_pt_3d.x;
-            //std::cout << "apparent width " << max_pt_3d.x - min_pt_3d.x << std::endl;
+            std::cout << "apparent width " << max_pt_3d.x - min_pt_3d.x << std::endl;
 
             // tell the mbot to stop
             if(width > 0.35 && width < 0.45) {
+                std::cout << "stopping" << max_pt_3d.x - min_pt_3d.x << std::endl;
+
                 lcm_to_ros::mbot_motor_command_t msg;
                 motor_command_pub.publish(msg);
             }
