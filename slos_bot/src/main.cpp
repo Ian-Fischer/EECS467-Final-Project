@@ -72,7 +72,7 @@ void SLOSBot::search_for_object() {
     cvtColor(cur_rgb, hsv_img, COLOR_BGR2HSV);
 
     Mat bin_img(hsv_img.size(), 0); 
-    inRange(hsv_img, Scalar(0, 120, 150), Scalar(10, 255, 255), bin_img);
+    inRange(hsv_img, Scalar(0, 120, 100), Scalar(10, 255, 255), bin_img);
 
     // Noise removal with morphology
     Mat kernel;
@@ -161,6 +161,7 @@ void SLOSBot::search_for_object() {
     imshow("post filter", bin_img);
     imshow("pre filter", debug_img);
     imshow("cur depth", cur_depth);
+
     //imwrite("/home/ashwin/Desktop/peepee.jpg", cur_rgb);
     waitKey(10);
     #endif
