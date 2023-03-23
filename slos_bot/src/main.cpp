@@ -90,9 +90,26 @@ void SLOSBot::search_for_object() {
         drawContours(debug_img, temp, 0, Scalar(0, 0, 255), 3);
 
         // search for max min
-        auto min_pt_it = std::min_element(h.begin(), h.end(), [] (auto& p1, auto& p2) { return p1.x < p2.x; });
-        auto max_pt_it = std::max_element(h.begin(), h.end(), [] (auto& p1, auto& p2) { return p1.x < p2.x; });
-        line(debug_img, *min_pt_it, *max_pt_it, Scalar(255, 0, 0), 3);
+        auto min_pt = *std::min_element(h.begin(), h.end(), [] (auto& p1, auto& p2) { return p1.x < p2.x; });
+        auto max_pt = *std::max_element(h.begin(), h.end(), [] (auto& p1, auto& p2) { return p1.x < p2.x; });
+        line(debug_img, min_pt, max_pt, Scalar(255, 0, 0), 3);
+
+        // compute points that mark the boundaries
+        Point vec = max_pt - min_pt;
+        vec = 10 * (vec/norm(vec));
+        auto search_pt_left = min_pt + vec;
+        auto search_pt_right = max_pt - vec;
+        circle(debug_img, search_pt_left, 2, Scalar(255, 255, 0), -1); 
+        circle(debug_img, search_pt_right, 2, Scalar(255, 0, 255), -1); 
+
+        // attempt to compute the width of the object
+        try {
+            auto min_y = cur_pc->at(search_pt_left.x, search_pt_left.y).y;
+            auto max_y = cur_pc->at(search_pt_right.x, search_pt_right.y).y;
+            std::cout << max_y - min_y << std::endl;
+        } catch(...) {
+        }
+
 
         // tell the mbot to stop
         lcm_to_ros::mbot_motor_command_t msg;
