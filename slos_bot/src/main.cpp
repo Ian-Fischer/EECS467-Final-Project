@@ -112,7 +112,7 @@ void SLOSBot::search_for_object() {
 
         // compute points that mark the boundaries
         Point vec = max_pt - min_pt;
-        vec = 10 * (vec/norm(vec));
+        vec = 1* (vec/norm(vec));
         auto search_pt_left = min_pt + vec;
         auto search_pt_right = max_pt - vec;
         circle(debug_img, search_pt_left, 2, Scalar(255, 255, 0), -1); 
