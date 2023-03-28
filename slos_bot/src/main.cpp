@@ -97,6 +97,7 @@ void SLOSBot::search_for_object() {
             return m1.m00 < m2.m00;
         }
     );
+    bool found = false;
     if(v != detections.end()) {
         auto& [m, h] = *v;
         circle(debug_img, Point(m.m10/m.m00, m.m01/m.m00), 4, Scalar(255, 255, 0), -1); 
@@ -123,13 +124,17 @@ void SLOSBot::search_for_object() {
             std::cout << "stopping " << m.m00 << std::endl;
             lcm_to_ros::mbot_motor_command_t msg;
             motor_command_pub.publish(msg);
+	    found = true;
+
         }
 
-    } else {
-        // tell the mbot to rotate
-        lcm_to_ros::mbot_motor_command_t msg;
-        msg.angular_v = 1.5;
-        motor_command_pub.publish(msg);
+    } 
+
+    if(!found) { 
+	// tell the mbot to rotate
+	lcm_to_ros::mbot_motor_command_t msg;
+	msg.angular_v = 1.5;
+	motor_command_pub.publish(msg);
     }
 
     #ifdef DEBUG
