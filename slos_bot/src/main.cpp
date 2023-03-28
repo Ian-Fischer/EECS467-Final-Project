@@ -13,7 +13,7 @@ SLOSBot::SLOSBot() :
  motor_command_pub( nh.advertise<lcm_to_ros::mbot_motor_command_t>("lcm_to_ros/MBOT_MOTOR_COMMAND", 1)),
  depth_img_sub( nh.subscribe("camera/depth_registered/image_raw", 1, &SLOSBot::depth_img_cb, this) ),
  rgb_img_sub( nh.subscribe("camera/rgb/image_rect_color", 1, &SLOSBot::rgb_img_cb, this) ),
- pointcloud_sub( nh.subscribe("camera/depth_registered/points", 1, &SLOSBot::pointcloud_cb, this) ),
+ //pointcloud_sub( nh.subscribe("camera/depth_registered/points", 1, &SLOSBot::pointcloud_cb, this) ),
  cur_pc(new pcl::PointCloud<pcl::PointXYZRGB>)
  #ifdef DEBUG
  ,viewer(new pcl::visualization::PCLVisualizer ("3D Viewer"))
@@ -72,7 +72,7 @@ void SLOSBot::search_for_object() {
     cvtColor(cur_rgb, hsv_img, COLOR_BGR2HSV);
 
     Mat bin_img(hsv_img.size(), 0); 
-    inRange(hsv_img, Scalar(0, 120, 100), Scalar(10, 255, 255), bin_img);
+    inRange(hsv_img, Scalar(100, 120, 100), Scalar(130, 255, 255), bin_img);
 
     // Noise removal with morphology
     Mat kernel;
@@ -119,36 +119,11 @@ void SLOSBot::search_for_object() {
         circle(debug_img, search_pt_right, 2, Scalar(255, 0, 255), -1); 
 
         // attempt to compute the width of the object
-        try {
-
-            auto &p = cur_pc->at(m.m10/m.m00, m.m01/m.m00);
-
-            auto min_pt_3d = cur_pc->at(search_pt_left.x, search_pt_left.y);
-            auto max_pt_3d = cur_pc->at(search_pt_right.x, search_pt_right.y);
-            float width = max_pt_3d.x - min_pt_3d.x;
-            std::cout << "apparent width " << max_pt_3d.x - min_pt_3d.x << std::endl;
-
-            // tell the mbot to stop
-            if(width > 0.35 && width < 0.45) {
-                std::cout << "stopping" << max_pt_3d.x - min_pt_3d.x << std::endl;
-
-                lcm_to_ros::mbot_motor_command_t msg;
-                motor_command_pub.publish(msg);
-            }
-
-            #ifdef DEBUG
-            viewer->removeShape("sphere");
-            viewer->addSphere(pcl::PointXYZ(p.x, p.y, p.z), 0.01, 1.0, 1.0, 0.0);
-            viewer->removeShape("sphere1");
-            viewer->addSphere(min_pt_3d, 0.01, 1.0, 1.0, 0.0, "sphere1");
-            viewer->removeShape("sphere2");
-            viewer->addSphere(max_pt_3d, 0.01, 1.0, 1.0, 0.0, "sphere2");
-            #endif
-
-        } catch(...) {
+        if(m.m00 > 1000) {
+            std::cout << "stopping " << m.m00 << std::endl;
+            lcm_to_ros::mbot_motor_command_t msg;
+            motor_command_pub.publish(msg);
         }
-
-
 
     } else {
         // tell the mbot to rotate
@@ -158,13 +133,14 @@ void SLOSBot::search_for_object() {
     }
 
     #ifdef DEBUG
+    #endif
+
     imshow("post filter", bin_img);
     imshow("pre filter", debug_img);
     imshow("cur depth", cur_depth);
 
     //imwrite("/home/ashwin/Desktop/peepee.jpg", cur_rgb);
     waitKey(10);
-    #endif
 
 
 }
