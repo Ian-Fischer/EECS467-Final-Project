@@ -182,7 +182,7 @@ SLOSBot::State SLOSBot::drive_to_object() {
         ret_state =  State::MATCH_OBJECT; // TODO change
     } else {
         //msg.trans_v = 0.3;
-        //msg.angular_v = ang_errror_dp;
+        msg.angular_v = ang_error;
 
         ret_state= State::DRIVE_TO_OBJECT;
     }
