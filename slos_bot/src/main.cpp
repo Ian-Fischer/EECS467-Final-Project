@@ -164,23 +164,31 @@ SLOSBot::State SLOSBot::search_for_object() {
 SLOSBot::State SLOSBot::drive_to_object() {
     auto pt = object_detection.get_point_in_odom();
     auto odom = Eigen::Vector2d(cur_odom.x, cur_odom.y);
-    std::cout << pt.x() << ", " << pt.y() << std::endl;
+    //std::cout << pt.x() << ", " << pt.y() << std::endl;
 
     lcm_to_ros::mbot_motor_command_t msg;
     auto drive_error = pt - odom;
-    double ang_error_dp = (drive_error/drive_error.norm()).dot(Eigen::Vector2d(cos(cur_odom.theta), sin(cur_odom.theta)));
-    auto angular_error = acos(ang_error_dp);
+    //double ang_error_dp = (drive_error/drive_error.norm()).dot(Eigen::Vector2d(cos(cur_odom.theta), sin(cur_odom.theta)));
+    auto drive_dir = drive_error/drive_error.norm();
+    auto cur_dir = Eigen::Vector2d(cos(cur_odom.theta), sin(cur_odom.theta));
+    double ang_error = cur_dir.x()*drive_dir.y() - drive_dir.x()*cur_dir.y();
+    //auto angular_error = acos(ang_error_dp);
+    std::cout << "drive error norm " << drive_error.norm() << "ang_error " << ang_error << std::endl;
 
+    State ret_state;
     if(drive_error.norm() < 0.04) {
         msg.trans_v = 0.0;
         msg.angular_v = 0.0;
-        return State::MATCH_OBJECT; // TODO change
+        ret_state =  State::MATCH_OBJECT; // TODO change
     } else {
-        msg.trans_v = 1.0;
-        msg.angular_v = -angular_error;
+        //msg.trans_v = 0.3;
+        //msg.angular_v = ang_errror_dp;
 
-        return State::DRIVE_TO_OBJECT;
+        ret_state= State::DRIVE_TO_OBJECT;
     }
+
+    motor_command_pub.publish(msg);
+    return ret_state;
 }
 
 void SLOSBot::execute_sm() {
