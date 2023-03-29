@@ -7,6 +7,7 @@
 #include "sensor_msgs/image_encodings.h"
 #include "slosbot.h"
 #include "cv_bridge/cv_bridge.h"
+#include <math.h>   
 
 using namespace cv;
 using namespace std;
@@ -161,14 +162,25 @@ SLOSBot::State SLOSBot::search_for_object() {
 }
 
 SLOSBot::State SLOSBot::drive_to_object() {
-    auto pt = object_detection.get_point_in_cam();
-    /*
-    if(fabs(pt.x()) > 0.1) {
+    auto pt = object_detection.get_point_in_odom();
+    auto odom = Eigen::Vector2d(cur_odom.x, cur_odom.y);
+    std::cout << pt.x() << ", " << pt.y() << std::endl;
 
+    lcm_to_ros::mbot_motor_command_t msg;
+    auto drive_error = pt - odom;
+    double ang_error_dp = (drive_error/drive_error.norm()).dot(Eigen::Vector2d(cos(cur_odom.theta), sin(cur_odom.theta)));
+    auto angular_error = acos(ang_error_dp);
+
+    if(drive_error.norm() < 0.04) {
+        msg.trans_v = 0.0;
+        msg.angular_v = 0.0;
+        return State::MATCH_OBJECT; // TODO change
+    } else {
+        msg.trans_v = 1.0;
+        msg.angular_v = -angular_error;
+
+        return State::DRIVE_TO_OBJECT;
     }
-    */
-
-    return State::DRIVE_TO_OBJECT;
 }
 
 void SLOSBot::execute_sm() {
