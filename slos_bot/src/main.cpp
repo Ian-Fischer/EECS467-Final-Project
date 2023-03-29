@@ -80,7 +80,8 @@ SLOSBot::State SLOSBot::search_for_object() {
     cvtColor(cur_rgb, hsv_img, COLOR_BGR2HSV);
 
     Mat bin_img(hsv_img.size(), 0); 
-    inRange(hsv_img, Scalar(100, 120, 100), Scalar(130, 255, 255), bin_img);
+    //inRange(hsv_img, Scalar(100, 120, 100), Scalar(130, 255, 255), bin_img);
+    inRange(hsv_img, Scalar(0, 120, 100), Scalar(20, 255, 255), bin_img);
 
     // Noise removal with morphology
     Mat kernel;
@@ -181,7 +182,7 @@ SLOSBot::State SLOSBot::drive_to_object() {
         msg.angular_v = 0.0;
         ret_state =  State::MATCH_OBJECT; // TODO change
     } else {
-        //msg.trans_v = 0.3;
+        msg.trans_v = 0.3;
         msg.angular_v = ang_error;
 
         ret_state= State::DRIVE_TO_OBJECT;
