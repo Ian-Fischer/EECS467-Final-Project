@@ -1,0 +1,6 @@
+int32 OPEN = 0
+int32 CLOSED_CAN = 1
+int32 CLOSED_BOX = 2
+int32 state
+---
+bool success
