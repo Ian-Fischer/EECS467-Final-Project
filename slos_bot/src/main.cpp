@@ -5,7 +5,6 @@
 #include "sensor_msgs/PointCloud2.h"
 #include "sensor_msgs/image_encodings.h"
 #include "slosbot.h"
-#include "lcm_to_ros/mbot_motor_command_t.h"
 #include "cv_bridge/cv_bridge.h"
 
 
@@ -13,6 +12,7 @@ SLOSBot::SLOSBot() :
  motor_command_pub( nh.advertise<lcm_to_ros::mbot_motor_command_t>("lcm_to_ros/MBOT_MOTOR_COMMAND", 1)),
  depth_img_sub( nh.subscribe("camera/depth_registered/image_raw", 1, &SLOSBot::depth_img_cb, this) ),
  rgb_img_sub( nh.subscribe("camera/rgb/image_rect_color", 1, &SLOSBot::rgb_img_cb, this) ),
+ odom_sub( nh.subscribe("lcm_to_ros/ODOMETRY", 1, &SLOSBot::odom_cb, this) ),
  //pointcloud_sub( nh.subscribe("camera/depth_registered/points", 1, &SLOSBot::pointcloud_cb, this) ),
  cur_pc(new pcl::PointCloud<pcl::PointXYZRGB>)
  #ifdef DEBUG
@@ -25,6 +25,11 @@ SLOSBot::SLOSBot() :
     #endif
    //viewer->addSphere(pcl::PointXYZ(0.0, 0.0, 0.0), 0.01, 1.0, 1.0, 0.0);
 } 
+
+
+void SLOSBot::odom_cb(lcm_to_ros::odometry_t) {
+
+}
 
 void SLOSBot::depth_img_cb(sensor_msgs::ImageConstPtr img) {
     try {
