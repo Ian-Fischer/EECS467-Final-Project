@@ -7,7 +7,7 @@ add_compile_options(-std=c++17)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp lcm_to_ros cv_bridge pcl_ros)
+find_package(catkin REQUIRED COMPONENTS roscpp lcm_to_ros cv_bridge pcl_ros message_generation)
 find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
@@ -50,12 +50,11 @@ find_package(OpenCV REQUIRED)
 #   Message2.msg
 # )
 
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+# Generate services in the 'srv' folder
+ add_service_files(
+   FILES
+   ControlClaw.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -64,11 +63,11 @@ find_package(OpenCV REQUIRED)
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+# Generate added messages and services with any dependencies listed here
+ generate_messages(
+   DEPENDENCIES
+   std_msgs  # Or other packages containing msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -205,3 +204,7 @@ target_link_libraries(${PROJECT_NAME}_node
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+catkin_install_python(PROGRAMS scripts/claw_controller.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

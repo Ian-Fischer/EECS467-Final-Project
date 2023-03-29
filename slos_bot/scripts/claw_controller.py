@@ -2,7 +2,7 @@
 from gpiozero import Device, AngularServo
 from gpiozero.pins.pigpio import PiGPIOFactory
 import rospy
-from slosbot.srv import ControlClaw, ControlClawResponse
+from slos_bot.srv import ControlClaw, ControlClawResponse
 
 OPEN_ANGLE = -60
 CLOSED_CAN_ANGLE = -10
@@ -11,9 +11,9 @@ CLOSED_BOX_ANGLE = -20
 class ClawController:
     def __init__(self):
         Device.pin_factory = PiGPIOFactory()
-        servo = AngularServo(12)
+        self.servo = AngularServo(12)
         rospy.init_node("claw_controller")
-        s = rospy.Service("control_claw", ControlClaw, set_claw_angle)
+        s = rospy.Service("control_claw", ControlClaw, self.set_claw_angle)
         
     def set_claw_angle(self, req: ControlClaw):
         angle = None
