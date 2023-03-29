@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include "ros/init.h"
 #include "ros/publisher.h"
@@ -7,6 +8,8 @@
 #include "slosbot.h"
 #include "cv_bridge/cv_bridge.h"
 
+using namespace cv;
+using namespace std;
 
 SLOSBot::SLOSBot() :
  motor_command_pub( nh.advertise<lcm_to_ros::mbot_motor_command_t>("lcm_to_ros/MBOT_MOTOR_COMMAND", 1)),
@@ -27,8 +30,8 @@ SLOSBot::SLOSBot() :
 } 
 
 
-void SLOSBot::odom_cb(lcm_to_ros::odometry_t) {
-
+void SLOSBot::odom_cb(lcm_to_ros::odometry_t odom) {
+    cur_odom = odom;
 }
 
 void SLOSBot::depth_img_cb(sensor_msgs::ImageConstPtr img) {
@@ -54,7 +57,7 @@ void SLOSBot::pointcloud_cb(sensor_msgs::PointCloud2Ptr pc) {
 }
 
 void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
-    std::cout << "recieved im" << std::endl;
+    //std::cout << "recieved im" << std::endl;
     try {
         cv_bridge::CvImagePtr im;
         im = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
@@ -64,12 +67,11 @@ void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
     }
 }
 
-void SLOSBot::search_for_object() {
-    using namespace cv;
-    using namespace std;
+SLOSBot::State SLOSBot::search_for_object() {
 
+    State returnState = State::SEARCH_FOR_OBJECT;
     // Make sure there is a current image
-    if(cur_rgb.rows == 0 || cur_rgb.cols == 0) return;
+    if(cur_rgb.rows == 0 || cur_rgb.cols == 0) return returnState;
     Mat debug_img = cur_rgb.clone();
 
     // HSV segmentation
@@ -105,7 +107,8 @@ void SLOSBot::search_for_object() {
     bool found = false;
     if(v != detections.end()) {
         auto& [m, h] = *v;
-        circle(debug_img, Point(m.m10/m.m00, m.m01/m.m00), 4, Scalar(255, 255, 0), -1); 
+        Point detectionCenter(m.m10/m.m00, m.m01/m.m00);
+        circle(debug_img, detectionCenter, 4, Scalar(255, 255, 0), -1); 
 
 
         std::vector<vector<Point>> temp = {h};
@@ -124,22 +127,26 @@ void SLOSBot::search_for_object() {
         circle(debug_img, search_pt_left, 2, Scalar(255, 255, 0), -1); 
         circle(debug_img, search_pt_right, 2, Scalar(255, 0, 255), -1); 
 
-        // attempt to compute the width of the object
-        if(m.m00 > 1000) {
-            std::cout << "stopping " << m.m00 << std::endl;
-            lcm_to_ros::mbot_motor_command_t msg;
-            motor_command_pub.publish(msg);
-	    found = true;
-
+        // Attempt to get depth at the center
+        if(m.m00 > 1000 && !cur_depth.empty()) {
+            float center_depth = cur_depth.at<float>((int)detectionCenter.y, (int)detectionCenter.x);
+            if(!isnan(center_depth)) {
+                std::cout << "stopping " << center_depth << std::endl;
+                lcm_to_ros::mbot_motor_command_t msg;
+                motor_command_pub.publish(msg);
+                found = true;
+                object_detection.update_detection(detectionCenter.x, detectionCenter.y, center_depth, cur_odom);
+                returnState = State::DRIVE_TO_OBJECT;
+            }
         }
 
     } 
 
     if(!found) { 
-	// tell the mbot to rotate
-	lcm_to_ros::mbot_motor_command_t msg;
-	msg.angular_v = 1.5;
-	motor_command_pub.publish(msg);
+        // tell the mbot to rotate
+        lcm_to_ros::mbot_motor_command_t msg;
+        msg.angular_v = 1.5;
+        motor_command_pub.publish(msg);
     }
 
     #ifdef DEBUG
@@ -148,11 +155,20 @@ void SLOSBot::search_for_object() {
     imshow("post filter", bin_img);
     imshow("pre filter", debug_img);
     imshow("cur depth", cur_depth);
-
-    //imwrite("/home/ashwin/Desktop/peepee.jpg", cur_rgb);
     waitKey(10);
+    return returnState;
 
+}
 
+SLOSBot::State SLOSBot::drive_to_object() {
+    auto pt = object_detection.get_point_in_cam();
+    /*
+    if(fabs(pt.x()) > 0.1) {
+
+    }
+    */
+
+    return State::DRIVE_TO_OBJECT;
 }
 
 void SLOSBot::execute_sm() {
@@ -160,7 +176,10 @@ void SLOSBot::execute_sm() {
     while(ros::ok()) {
         switch(state) {
             case State::SEARCH_FOR_OBJECT:
-                search_for_object();
+                state = search_for_object();
+                break;
+            case State::DRIVE_TO_OBJECT:
+                state = drive_to_object();
                 break;
             default:
                 std::cout << "invalid state" << std::endl;
