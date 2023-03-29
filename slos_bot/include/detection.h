@@ -1,4 +1,4 @@
-#include "Eigen/src/Core/Matrix.h"
+#include <Eigen/Dense>
 #include <chrono>
 #include "lcm_to_ros/odometry_t.h"
 
@@ -17,6 +17,8 @@ class DetectionManager {
     private:
         float u, v;
         float depth;
+        Eigen::Vector3d odom;
+         
         int hit_count = 0;
         std::chrono::time_point<std::chrono::system_clock> last_detection_time;
 };

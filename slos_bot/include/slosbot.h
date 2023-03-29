@@ -13,6 +13,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include "lcm_to_ros/mbot_motor_command_t.h"
 #include "lcm_to_ros/odometry_t.h"
+#include "detection.h"
 
 //#define DEBUG
 
@@ -21,13 +22,17 @@ class SLOSBot
     public:
         SLOSBot();
 
-        void execute_sm();
-    private:
         enum class State {
             SEARCH_FOR_OBJECT,
-            MATCH_OBJECT
+            MATCH_OBJECT, 
+            DRIVE_TO_OBJECT,
         };
+
+        void execute_sm();
+    private:
         State state = State::SEARCH_FOR_OBJECT;
+
+        DetectionManager object_detection;
 
         ros::NodeHandle nh;
         ros::Publisher motor_command_pub; 
@@ -39,12 +44,14 @@ class SLOSBot
 
         cv::Mat cur_rgb;
         cv::Mat cur_depth;
+        lcm_to_ros::odometry_t cur_odom;
         //sensor_msgs::PointCloud2 cur_pc;
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr cur_pc;
 
         pcl::visualization::PCLVisualizer::Ptr viewer;
 
-        void search_for_object();
+        SLOSBot::State search_for_object();
+        SLOSBot::State drive_to_object();
 
         void odom_cb(lcm_to_ros::odometry_t);
         void depth_img_cb(sensor_msgs::ImageConstPtr);
