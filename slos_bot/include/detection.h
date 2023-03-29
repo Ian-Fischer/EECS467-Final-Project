@@ -17,7 +17,8 @@ class DetectionManager {
     private:
         float u, v;
         float depth;
-        Eigen::Vector2d odom;
+        //Eigen::Vector2d odom;
+        lcm_to_ros::odometry_t odom;
          
         int hit_count = 0;
         std::chrono::time_point<std::chrono::system_clock> last_detection_time;
