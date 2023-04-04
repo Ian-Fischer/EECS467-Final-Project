@@ -3,7 +3,6 @@
 #include <iostream>
 #include "ros/init.h"
 #include "ros/publisher.h"
-#include "sensor_msgs/PointCloud2.h"
 #include "sensor_msgs/image_encodings.h"
 #include "slosbot.h"
 #include "cv_bridge/cv_bridge.h"
@@ -16,18 +15,7 @@ SLOSBot::SLOSBot() :
  motor_command_pub( nh.advertise<lcm_to_ros::mbot_motor_command_t>("lcm_to_ros/MBOT_MOTOR_COMMAND", 1)),
  depth_img_sub( nh.subscribe("camera/depth_registered/image_raw", 1, &SLOSBot::depth_img_cb, this) ),
  rgb_img_sub( nh.subscribe("camera/rgb/image_rect_color", 1, &SLOSBot::rgb_img_cb, this) ),
- odom_sub( nh.subscribe("lcm_to_ros/ODOMETRY", 1, &SLOSBot::odom_cb, this) ),
- //pointcloud_sub( nh.subscribe("camera/depth_registered/points", 1, &SLOSBot::pointcloud_cb, this) ),
- cur_pc(new pcl::PointCloud<pcl::PointXYZRGB>)
- #ifdef DEBUG
- ,viewer(new pcl::visualization::PCLVisualizer ("3D Viewer"))
- #endif
-{
-    #ifdef DEBUG
-    viewer->addPointCloud (cur_pc, "sample cloud");
-    viewer->addCoordinateSystem();
-    #endif
-   //viewer->addSphere(pcl::PointXYZ(0.0, 0.0, 0.0), 0.01, 1.0, 1.0, 0.0);
+ odom_sub( nh.subscribe("lcm_to_ros/ODOMETRY", 1, &SLOSBot::odom_cb, this) ) {
 } 
 
 
@@ -46,17 +34,6 @@ void SLOSBot::depth_img_cb(sensor_msgs::ImageConstPtr img) {
 
 }
 
-void SLOSBot::pointcloud_cb(sensor_msgs::PointCloud2Ptr pc) {
-    pcl::PCLPointCloud2 pcl_pc2;
-    pcl_conversions::toPCL(*pc,pcl_pc2);
-    //pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::fromPCLPointCloud2(pcl_pc2,*cur_pc);
-    #ifdef DEBUG
-    viewer->removePointCloud("sample cloud");
-    viewer->addPointCloud(cur_pc, "sample cloud");
-    #endif
-}
-
 void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
     //std::cout << "recieved im" << std::endl;
     try {
@@ -68,11 +45,10 @@ void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
     }
 }
 
-SLOSBot::State SLOSBot::search_for_object() {
 
-    State returnState = State::SEARCH_FOR_OBJECT;
+bool SLOSBot::run_obj_detection() {
     // Make sure there is a current image
-    if(cur_rgb.rows == 0 || cur_rgb.cols == 0) return returnState;
+    if(cur_rgb.rows == 0 || cur_rgb.cols == 0) return false;
     Mat debug_img = cur_rgb.clone();
 
     // HSV segmentation
@@ -107,6 +83,7 @@ SLOSBot::State SLOSBot::search_for_object() {
         }
     );
     bool found = false;
+
     if(v != detections.end()) {
         auto& [m, h] = *v;
         Point detectionCenter(m.m10/m.m00, m.m01/m.m00);
@@ -133,39 +110,40 @@ SLOSBot::State SLOSBot::search_for_object() {
         if(m.m00 > 1000 && !cur_depth.empty()) {
             float center_depth = cur_depth.at<float>((int)detectionCenter.y, (int)detectionCenter.x);
             if(!isnan(center_depth)) {
-                std::cout << "stopping " << center_depth << std::endl;
-                lcm_to_ros::mbot_motor_command_t msg;
-                motor_command_pub.publish(msg);
-                found = true;
                 object_detection.update_detection(detectionCenter.x, detectionCenter.y, center_depth, cur_odom);
-                returnState = State::DRIVE_TO_OBJECT;
+                found = true;
+                std::cout << "stopping " << center_depth << std::endl;
             }
         }
-
-    } 
-
-    if(!found) { 
-        // tell the mbot to rotate
-        lcm_to_ros::mbot_motor_command_t msg;
-        msg.angular_v = 1.5;
-        motor_command_pub.publish(msg);
     }
-
-    #ifdef DEBUG
-    #endif
 
     imshow("post filter", bin_img);
     imshow("pre filter", debug_img);
     imshow("cur depth", cur_depth);
     waitKey(10);
-    return returnState;
 
+    return found;
+}
+
+SLOSBot::State SLOSBot::search_for_object() {
+    if(!run_obj_detection()) { 
+        // tell the mbot to rotate
+        lcm_to_ros::mbot_motor_command_t msg;
+        msg.angular_v = 1.5;
+        motor_command_pub.publish(msg);
+        return State::SEARCH_FOR_OBJECT;
+    } else {
+        lcm_to_ros::mbot_motor_command_t msg;
+        motor_command_pub.publish(msg);
+        return State::DRIVE_TO_OBJECT;
+    }
 }
 
 SLOSBot::State SLOSBot::drive_to_object() {
+    run_obj_detection();
+
     auto pt = object_detection.get_point_in_odom();
     auto odom = Eigen::Vector2d(cur_odom.x, cur_odom.y);
-    //std::cout << pt.x() << ", " << pt.y() << std::endl;
 
     lcm_to_ros::mbot_motor_command_t msg;
     auto drive_error = pt - odom;
