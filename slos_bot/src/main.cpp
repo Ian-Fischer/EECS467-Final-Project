@@ -130,7 +130,7 @@ SLOSBot::State SLOSBot::search_for_object() {
     if(!run_obj_detection()) { 
         // tell the mbot to rotate
         lcm_to_ros::mbot_motor_command_t msg;
-        msg.angular_v = 1.5;
+        msg.angular_v = 0.9;
         motor_command_pub.publish(msg);
         return State::SEARCH_FOR_OBJECT;
     } else {
@@ -161,7 +161,7 @@ SLOSBot::State SLOSBot::drive_to_object() {
         msg.angular_v = 0.0;
         ret_state =  State::MATCH_OBJECT; // TODO change
     } else {
-        msg.trans_v = 0.3;
+        msg.trans_v = 0.2;
         msg.angular_v = ang_error;
 
         ret_state= State::DRIVE_TO_OBJECT;
