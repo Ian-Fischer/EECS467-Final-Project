@@ -228,21 +228,6 @@ AprilTagDetectionArray TagDetector::detectTags (
                                   .buf = gray_image.data
   };
 
-  image_geometry::PinholeCameraModel camera_model;
-  camera_model.fromCameraInfo(camera_info);
-
-  // Get camera intrinsic properties for rectified image.
-  double fx = camera_model.fx(); // focal length in camera x-direction [px]
-  double fy = camera_model.fy(); // focal length in camera y-direction [px]
-  double cx = camera_model.cx(); // optical center x-coordinate [px]
-  double cy = camera_model.cy(); // optical center y-coordinate [px]
-
-  ROS_INFO_STREAM_ONCE("Camera model: fx = " << fx << ", fy = " << fy << ", cx = " << cx << ", cy = " << cy);
-
-  // Check if camera intrinsics are not available - if not the calculated
-  // transforms are meaningless.
-  if (fx == 0 && fy == 0) ROS_WARN_STREAM_THROTTLE(5, "fx and fy are zero. Are the camera intrinsics set?");
-
   // Run AprilTag 2 algorithm on the image
   if (detections_)
   {
@@ -260,47 +245,13 @@ AprilTagDetectionArray TagDetector::detectTags (
     removeDuplicates();
   }
 
-  // Compute the estimated translation and rotation individually for each
-  // detected tag
-  AprilTagDetectionArray tag_detection_array;
   std::vector<std::string > detection_names;
   tag_detection_array.header = image->header;
-  std::map<std::string, std::vector<cv::Point3d > > bundleObjectPoints;
-  std::map<std::string, std::vector<cv::Point2d > > bundleImagePoints;
   for (int i=0; i < zarray_size(detections_); i++)
   {
     // Get the i-th detected tag
     apriltag_detection_t *detection;
     zarray_get(detections_, i, &detection);
-
-    // Bootstrap this for loop to find this tag's description amongst
-    // the tag bundles. If found, add its points to the bundle's set of
-    // object-image corresponding points (tag corners) for cv::solvePnP.
-    // Don't yet run cv::solvePnP on the bundles, though, since we're still in
-    // the process of collecting all the object-image corresponding points
-    int tagID = detection->id;
-    bool is_part_of_bundle = false;
-    for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++)
-    {
-      // Iterate over the registered bundles
-      TagBundleDescription bundle = tag_bundle_descriptions_[j];
-
-      if (bundle.id2idx_.find(tagID) != bundle.id2idx_.end())
-      {
-        // This detected tag belongs to the j-th tag bundle (its ID was found in
-        // the bundle description)
-        is_part_of_bundle = true;
-        std::string bundleName = bundle.name();
-
-        //===== Corner points in the world frame coordinates
-        double s = bundle.memberSize(tagID)/2;
-        addObjectPoints(s, bundle.memberT_oi(tagID),
-                        bundleObjectPoints[bundleName]);
-
-        //===== Corner points in the image frame coordinates
-        addImagePoints(detection, bundleImagePoints[bundleName]);
-      }
-    }
 
     // Find this tag's description amongst the standalone tags
     // Print warning when a tag was found that is neither part of a
@@ -314,46 +265,15 @@ AprilTagDetectionArray TagDetector::detectTags (
       continue;
     }
 
-    //=================================================================
-    // The remainder of this for loop is concerned with standalone tag
-    // poses!
-    double tag_size = standaloneDescription->size();
-
-    // Get estimated tag pose in the camera frame.
-    //
-    // Note on frames:
-    // The raw AprilTag 2 uses the following frames:
-    //   - camera frame: looking from behind the camera (like a
-    //     photographer), x is right, y is up and z is towards you
-    //     (i.e. the back of camera)
-    //   - tag frame: looking straight at the tag (oriented correctly),
-    //     x is right, y is down and z is away from you (into the tag).
-    // But we want:
-    //   - camera frame: looking from behind the camera (like a
-    //     photographer), x is right, y is down and z is straight
-    //     ahead
-    //   - tag frame: looking straight at the tag (oriented correctly),
-    //     x is right, y is up and z is towards you (out of the tag).
-    // Using these frames together with cv::solvePnP directly avoids
-    // AprilTag 2's frames altogether.
-    // TODO solvePnP[Ransac] better?
-    std::vector<cv::Point3d > standaloneTagObjectPoints;
     std::vector<cv::Point2d > standaloneTagImagePoints;
-    addObjectPoints(tag_size/2, cv::Matx44d::eye(), standaloneTagObjectPoints);
     addImagePoints(detection, standaloneTagImagePoints);
-    Eigen::Isometry3d transform = getRelativeTransform(standaloneTagObjectPoints,
-                                                     standaloneTagImagePoints,
-                                                     fx, fy, cx, cy);
-    geometry_msgs::PoseWithCovarianceStamped tag_pose =
-        makeTagPose(transform, image->header);
 
-    // Add the detection to the back of the tag detection array
-    AprilTagDetection tag_detection;
-    tag_detection.pose = tag_pose;
-    tag_detection.id.push_back(detection->id);
-    tag_detection.size.push_back(tag_size);
-    tag_detection_array.detections.push_back(tag_detection);
-    detection_names.push_back(standaloneDescription->frame_name());
+    // AprilTagDetection tag_detection;
+    // tag_detection.pose = tag_pose;
+    // tag_detection.id.push_back(detection->id);
+    // tag_detection.size.push_back(tag_size);
+    // tag_detection_array.detections.push_back(tag_detection);
+    // detection_names.push_back(standaloneDescription->frame_name());
   }
 
   //=================================================================
