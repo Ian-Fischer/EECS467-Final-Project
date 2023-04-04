@@ -57,7 +57,7 @@ bool SLOSBot::run_obj_detection() {
 
     Mat bin_img(hsv_img.size(), 0); 
     //inRange(hsv_img, Scalar(100, 120, 100), Scalar(130, 255, 255), bin_img);
-    inRange(hsv_img, Scalar(0, 120, 100), Scalar(20, 255, 255), bin_img);
+    inRange(hsv_img, Scalar(0, 170, 170), Scalar(10, 255, 255), bin_img);
 
     // Noise removal with morphology
     Mat kernel;
@@ -120,6 +120,7 @@ bool SLOSBot::run_obj_detection() {
     imshow("post filter", bin_img);
     imshow("pre filter", debug_img);
     imshow("cur depth", cur_depth);
+    imwrite("/home/ashwin/Desktop/blah.jpg", cur_rgb);
     waitKey(10);
 
     return found;
