@@ -20,11 +20,13 @@ class SLOSBot
             SEARCH_FOR_OBJECT,
             MATCH_OBJECT, 
             DRIVE_TO_OBJECT,
+            SEARCH_FOR_ZONE,
+            DRIVE_TO_ZONE
         };
 
         void execute_sm();
     private:
-        State state = State::SEARCH_FOR_OBJECT;
+        State state = State::SEARCH_FOR_ZONE;
 
         DetectionManager object_detection;
         DetectionManager april_detection;
@@ -40,13 +42,16 @@ class SLOSBot
         cv::Mat cur_rgb;
         cv::Mat cur_depth;
         lcm_to_ros::odometry_t cur_odom;
+        bool april_detected = false;
 
         SLOSBot::State search_for_object();
         SLOSBot::State drive_to_object();
+        SLOSBot::State search_for_zone();
+        SLOSBot::State drive_to_zone();
 
         // Runs detection pipeline and returns true if there was a detection
         bool run_obj_detection();
-        bool run_drive_ctrl(DetectionManager &detection);
+        bool run_drive_ctrl(DetectionManager &detection, float error=0.04);
 
         void odom_cb(lcm_to_ros::odometry_t);
         void depth_img_cb(sensor_msgs::ImageConstPtr);

@@ -20,9 +20,15 @@ SLOSBot::SLOSBot() :
 
 } 
 
-
 void SLOSBot::april_cb(apriltag_ros::AprilTagDetectionArray a) {
-    std::cout << a.detections.size() << std::endl;
+    april_detected = a.detections.size() > 0;
+    if(april_detected && !cur_depth.empty()) {
+        std::vector<int> pt = a.detections[0].center;
+        float center_depth = cur_depth.at<float>(pt[1], pt[0]);
+        if(!isnan(center_depth)) {
+            april_detection.update_detection(pt[0], pt[1], center_depth, cur_odom);
+        }
+    }
 }
 
 void SLOSBot::odom_cb(lcm_to_ros::odometry_t odom) {
@@ -37,11 +43,9 @@ void SLOSBot::depth_img_cb(sensor_msgs::ImageConstPtr img) {
     } catch(cv_bridge::Exception) {
         std::cout << "Could not convert image" << std::endl;
     }
-
 }
 
 void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
-    //std::cout << "recieved im" << std::endl;
     try {
         cv_bridge::CvImagePtr im;
         im = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
@@ -50,7 +54,6 @@ void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
         std::cout << "Could not convert image" << std::endl;
     }
 }
-
 
 bool SLOSBot::run_obj_detection() {
     // Make sure there is a current image
@@ -132,6 +135,31 @@ bool SLOSBot::run_obj_detection() {
     return found;
 }
 
+bool SLOSBot::run_drive_ctrl(DetectionManager &detection, float error) {
+    auto pt = detection.get_point_in_odom();
+    auto odom = Eigen::Vector2d(cur_odom.x, cur_odom.y);
+
+    lcm_to_ros::mbot_motor_command_t msg;
+    auto drive_error = pt - odom;
+    auto drive_dir = drive_error/drive_error.norm();
+    auto cur_dir = Eigen::Vector2d(cos(cur_odom.theta), sin(cur_odom.theta));
+    double ang_error = cur_dir.x()*drive_dir.y() - drive_dir.x()*cur_dir.y();
+    std::cout << "drive error norm " << drive_error.norm() << "ang_error " << ang_error << std::endl;
+
+    bool done = false;
+    if(drive_error.norm() < error) {
+        msg.trans_v = 0.0;
+        msg.angular_v = 0.0;
+        done = true;
+    } else {
+        msg.trans_v = 0.2;
+        msg.angular_v = ang_error;
+    }
+
+    motor_command_pub.publish(msg);
+    return done;
+}
+
 SLOSBot::State SLOSBot::search_for_object() {
     if(!run_obj_detection()) { 
         // tell the mbot to rotate
@@ -148,33 +176,29 @@ SLOSBot::State SLOSBot::search_for_object() {
 
 SLOSBot::State SLOSBot::drive_to_object() {
     run_obj_detection();
+    if(!run_drive_ctrl(object_detection)) {
+        return State::DRIVE_TO_OBJECT;
+    } else return State::MATCH_OBJECT;
+}
 
-    auto pt = object_detection.get_point_in_odom();
-    auto odom = Eigen::Vector2d(cur_odom.x, cur_odom.y);
-
-    lcm_to_ros::mbot_motor_command_t msg;
-    auto drive_error = pt - odom;
-    //double ang_error_dp = (drive_error/drive_error.norm()).dot(Eigen::Vector2d(cos(cur_odom.theta), sin(cur_odom.theta)));
-    auto drive_dir = drive_error/drive_error.norm();
-    auto cur_dir = Eigen::Vector2d(cos(cur_odom.theta), sin(cur_odom.theta));
-    double ang_error = cur_dir.x()*drive_dir.y() - drive_dir.x()*cur_dir.y();
-    //auto angular_error = acos(ang_error_dp);
-    std::cout << "drive error norm " << drive_error.norm() << "ang_error " << ang_error << std::endl;
-
-    State ret_state;
-    if(drive_error.norm() < 0.04) {
-        msg.trans_v = 0.0;
-        msg.angular_v = 0.0;
-        ret_state =  State::MATCH_OBJECT; // TODO change
+SLOSBot::State SLOSBot::search_for_zone() {
+    if(!april_detected) { 
+        // tell the mbot to rotate
+        lcm_to_ros::mbot_motor_command_t msg;
+        msg.angular_v = 0.9;
+        motor_command_pub.publish(msg);
+        return State::SEARCH_FOR_ZONE;
     } else {
-        msg.trans_v = 0.2;
-        msg.angular_v = ang_error;
-
-        ret_state= State::DRIVE_TO_OBJECT;
+        lcm_to_ros::mbot_motor_command_t msg;
+        motor_command_pub.publish(msg);
+        return State::DRIVE_TO_ZONE;
     }
-
-    motor_command_pub.publish(msg);
-    return ret_state;
+}
+SLOSBot::State SLOSBot::drive_to_zone() {
+    run_obj_detection();
+    if(!run_drive_ctrl(april_detection)) {
+        return State::DRIVE_TO_ZONE;
+    } else return State::MATCH_OBJECT;
 }
 
 void SLOSBot::execute_sm() {
@@ -187,16 +211,18 @@ void SLOSBot::execute_sm() {
             case State::DRIVE_TO_OBJECT:
                 state = drive_to_object();
                 break;
+            case State::SEARCH_FOR_ZONE:
+                state = search_for_zone();
+                break;
+            case State::DRIVE_TO_ZONE:
+                state = drive_to_zone();
+                break;
             default:
                 std::cout << "invalid state" << std::endl;
         };
 
         ros::spinOnce();
         loop_rate.sleep();
-
-        #ifdef DEBUG
-        viewer->spinOnce(10);
-        #endif
     }
 
 }
