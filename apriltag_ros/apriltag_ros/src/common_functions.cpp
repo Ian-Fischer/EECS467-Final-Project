@@ -31,6 +31,7 @@
 
 #include "apriltag_ros/common_functions.h"
 #include "image_geometry/pinhole_camera_model.h"
+#include <numeric>
 
 #include "common/homography.h"
 #include "tagStandard52h13.h"
@@ -352,8 +353,17 @@ AprilTagDetectionArray TagDetector::detectTags (
     tag_detection.pose = tag_pose;
     tag_detection.id.push_back(detection->id);
     tag_detection.size.push_back(tag_size);
+
+    cv::Point2d center = std::accumulate(standaloneTagImagePoints.begin(), standaloneTagImagePoints.end(), cv::Point2d(0.0, 0.0))/4.0;
+    tag_detection.center.push_back(center.x);
+    tag_detection.center.push_back(center.y);
+
     tag_detection_array.detections.push_back(tag_detection);
+
     detection_names.push_back(standaloneDescription->frame_name());
+    //tag_detection.center 
+    //tag_detection.center[0] = center.x;
+    //tag_detection.center[1] = center.y;
   }
 
   //=================================================================
@@ -385,7 +395,13 @@ AprilTagDetectionArray TagDetector::detectTags (
       tag_detection.pose = bundle_pose;
       tag_detection.id = bundle.bundleIds();
       tag_detection.size = bundle.bundleSizes();
+
+      cv::Point2d center = std::accumulate(bundleImagePoints[bundleName].begin(), bundleImagePoints[bundleName].end(), cv::Point2d(0.0, 0.0))/4.0;
+      tag_detection.center.push_back(center.x);
+      tag_detection.center.push_back(center.y);
+
       tag_detection_array.detections.push_back(tag_detection);
+
       detection_names.push_back(bundle.name());
     }
   }
