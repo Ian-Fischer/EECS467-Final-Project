@@ -196,7 +196,7 @@ SLOSBot::State SLOSBot::search_for_zone() {
 }
 SLOSBot::State SLOSBot::drive_to_zone() {
     run_obj_detection();
-    if(!run_drive_ctrl(april_detection)) {
+    if(!run_drive_ctrl(april_detection, 0.15)) {
         return State::DRIVE_TO_ZONE;
     } else return State::MATCH_OBJECT;
 }
