@@ -187,15 +187,19 @@ SLOSBot::State SLOSBot::search_for_zone() {
         lcm_to_ros::mbot_motor_command_t msg;
         msg.angular_v = 0.9;
         motor_command_pub.publish(msg);
+
+        std::cout << "search for zone" << std::endl;
         return State::SEARCH_FOR_ZONE;
     } else {
+
+        std::cout << "zone found!" << std::endl;
         lcm_to_ros::mbot_motor_command_t msg;
         motor_command_pub.publish(msg);
         return State::DRIVE_TO_ZONE;
     }
 }
 SLOSBot::State SLOSBot::drive_to_zone() {
-    run_obj_detection();
+    //run_obj_detection();
     if(!run_drive_ctrl(april_detection, 0.15)) {
         return State::DRIVE_TO_ZONE;
     } else return State::MATCH_OBJECT;
