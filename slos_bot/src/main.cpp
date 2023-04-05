@@ -15,9 +15,15 @@ SLOSBot::SLOSBot() :
  motor_command_pub( nh.advertise<lcm_to_ros::mbot_motor_command_t>("lcm_to_ros/MBOT_MOTOR_COMMAND", 1)),
  depth_img_sub( nh.subscribe("camera/depth_registered/image_raw", 1, &SLOSBot::depth_img_cb, this) ),
  rgb_img_sub( nh.subscribe("camera/rgb/image_rect_color", 1, &SLOSBot::rgb_img_cb, this) ),
- odom_sub( nh.subscribe("lcm_to_ros/ODOMETRY", 1, &SLOSBot::odom_cb, this) ) {
+ odom_sub( nh.subscribe("lcm_to_ros/ODOMETRY", 1, &SLOSBot::odom_cb, this) ),
+ april_sub( nh.subscribe("tag_detections", 1, &SLOSBot::april_cb, this) ) {
+
 } 
 
+
+void SLOSBot::april_cb(apriltag_ros::AprilTagDetectionArray a) {
+    std::cout << a.detections.size() << std::endl;
+}
 
 void SLOSBot::odom_cb(lcm_to_ros::odometry_t odom) {
     cur_odom = odom;
@@ -48,7 +54,7 @@ void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
 
 bool SLOSBot::run_obj_detection() {
     // Make sure there is a current image
-    if(cur_rgb.rows == 0 || cur_rgb.cols == 0) return false;
+    if(cur_rgb.rows == 0 || cur_rgb.cols == 0 || cur_depth.rows == 0) return false;
     Mat debug_img = cur_rgb.clone();
 
     // HSV segmentation
@@ -57,7 +63,7 @@ bool SLOSBot::run_obj_detection() {
 
     Mat bin_img(hsv_img.size(), 0); 
     //inRange(hsv_img, Scalar(100, 120, 100), Scalar(130, 255, 255), bin_img);
-    inRange(hsv_img, Scalar(0, 170, 170), Scalar(10, 255, 255), bin_img);
+    inRange(hsv_img, Scalar(0, 170, 170), Scalar(20, 255, 255), bin_img);// can probably be 10
 
     // Noise removal with morphology
     Mat kernel;
@@ -120,7 +126,7 @@ bool SLOSBot::run_obj_detection() {
     imshow("post filter", bin_img);
     imshow("pre filter", debug_img);
     imshow("cur depth", cur_depth);
-    imwrite("/home/ashwin/Desktop/blah.jpg", cur_rgb);
+    //imwrite("/home/ashwin/Desktop/blah.jpg", cur_rgb);
     waitKey(10);
 
     return found;
