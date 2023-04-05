@@ -22,6 +22,7 @@ SLOSBot::SLOSBot() :
 
 void SLOSBot::april_cb(apriltag_ros::AprilTagDetectionArray a) {
     april_detected = a.detections.size() > 0;
+    std::cout << "april status " <<  april_detected << std::endl;
     if(april_detected && !cur_depth.empty()) {
         std::vector<int> pt = a.detections[0].center;
         float center_depth = cur_depth.at<float>(pt[1], pt[0]);
