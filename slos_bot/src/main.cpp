@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include "ros/init.h"
@@ -219,13 +220,29 @@ SLOSBot::State SLOSBot::drive_to_zone() {
         slos_bot::ControlClaw req;
         req.request.state = slos_bot::ControlClawRequest::OPEN;
         claw_client.call(req);
-	return State::MATCH_OBJECT;
+        return State::REVERSE;
     }
+}
+
+SLOSBot::State SLOSBot::reverse(bool rising_edge) {
+    auto now = std::chrono::system_clock().now();
+    //reverse
+    if(rising_edge) reverse_time = now;
+
+    lcm_to_ros::mbot_motor_command_t msg;
+    msg.trans_v = -0.3;
+    motor_command_pub.publish(msg);
+
+    if(std::chrono::duration_cast<std::chrono::milliseconds>(now-reverse_time).count() > 1000) {
+        return State::MATCH_OBJECT;
+    }
+    return State::REVERSE;
 }
 
 void SLOSBot::execute_sm() {
     ros::Rate loop_rate(10);
     while(ros::ok()) {
+        prev_state = state;
         switch(state) {
             case State::SEARCH_FOR_OBJECT:
                 state = search_for_object();
@@ -239,10 +256,13 @@ void SLOSBot::execute_sm() {
             case State::DRIVE_TO_ZONE:
                 state = drive_to_zone();
                 break;
+            case State::REVERSE:
+                state = reverse(rising_edge);
+                break;
             default:
                 std::cout << "invalid state" << std::endl;
         };
-
+        rising_edge = state != prev_state; 
         ros::spinOnce();
         loop_rate.sleep();
     }

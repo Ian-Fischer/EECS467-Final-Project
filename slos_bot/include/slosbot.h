@@ -8,6 +8,7 @@
 #include "lcm_to_ros/odometry_t.h"
 #include "detection.h"
 #include "apriltag_ros/AprilTagDetectionArray.h"
+#include <chrono>
 
 //#define DEBUG
 
@@ -21,19 +22,23 @@ class SLOSBot
             MATCH_OBJECT, 
             DRIVE_TO_OBJECT,
             SEARCH_FOR_ZONE,
-            DRIVE_TO_ZONE
+            DRIVE_TO_ZONE,
+            REVERSE
         };
 
         void execute_sm();
     private:
         // Robot state
         State state = State::SEARCH_FOR_OBJECT;
+        State prev_state;
+        bool rising_edge = true;
         DetectionManager object_detection;
         DetectionManager april_detection;
         cv::Mat cur_rgb;
         cv::Mat cur_depth;
         lcm_to_ros::odometry_t cur_odom;
         bool april_detected = false;
+        std::chrono::time_point<std::chrono::system_clock> reverse_time;
 
         // Ros stuff
         ros::NodeHandle nh;
@@ -49,6 +54,7 @@ class SLOSBot
         SLOSBot::State drive_to_object();
         SLOSBot::State search_for_zone();
         SLOSBot::State drive_to_zone();
+        SLOSBot::State reverse(bool);
 
         // Shared state functionality and helpers
         bool run_obj_detection();
