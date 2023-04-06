@@ -4,9 +4,11 @@
 #include "ros/init.h"
 #include "ros/publisher.h"
 #include "sensor_msgs/image_encodings.h"
+#include "slos_bot/ControlClawRequest.h"
 #include "slosbot.h"
 #include "cv_bridge/cv_bridge.h"
 #include <math.h>   
+#include "slos_bot/ControlClaw.h"
 
 using namespace cv;
 using namespace std;
@@ -16,9 +18,10 @@ SLOSBot::SLOSBot() :
  depth_img_sub( nh.subscribe("camera/depth_registered/image_raw", 1, &SLOSBot::depth_img_cb, this) ),
  rgb_img_sub( nh.subscribe("camera/rgb/image_rect_color", 1, &SLOSBot::rgb_img_cb, this) ),
  odom_sub( nh.subscribe("lcm_to_ros/ODOMETRY", 1, &SLOSBot::odom_cb, this) ),
- april_sub( nh.subscribe("tag_detections", 1, &SLOSBot::april_cb, this) ) {
-
-} 
+ april_sub( nh.subscribe("tag_detections", 1, &SLOSBot::april_cb, this) ),
+ claw_client( nh.serviceClient<slos_bot::ControlClaw>("control_claw")
+)
+ { } 
 
 void SLOSBot::april_cb(apriltag_ros::AprilTagDetectionArray a) {
     april_detected = a.detections.size() > 0;
@@ -179,7 +182,12 @@ SLOSBot::State SLOSBot::drive_to_object() {
     run_obj_detection();
     if(!run_drive_ctrl(object_detection)) {
         return State::DRIVE_TO_OBJECT;
-    } else return State::MATCH_OBJECT;
+    } else {
+        slos_bot::ControlClaw req;
+        req.request.state = slos_bot::ControlClawRequest::CLOSED_CAN;
+        claw_client.call(req);
+        return State::SEARCH_FOR_ZONE;
+    }
 }
 
 SLOSBot::State SLOSBot::search_for_zone() {
