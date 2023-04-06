@@ -174,6 +174,10 @@ SLOSBot::State SLOSBot::search_for_object() {
     } else {
         lcm_to_ros::mbot_motor_command_t msg;
         motor_command_pub.publish(msg);
+
+        slos_bot::ControlClaw req;
+        req.request.state = slos_bot::ControlClawRequest::OPEN;
+        claw_client.call(req);
         return State::DRIVE_TO_OBJECT;
     }
 }
@@ -194,14 +198,14 @@ SLOSBot::State SLOSBot::search_for_zone() {
     if(!april_detected) { 
         // tell the mbot to rotate
         lcm_to_ros::mbot_motor_command_t msg;
-        msg.angular_v = 0.9;
+        msg.angular_v = 0.6;
         motor_command_pub.publish(msg);
 
-        std::cout << "search for zone" << std::endl;
+        //std::cout << "search for zone" << std::endl;
         return State::SEARCH_FOR_ZONE;
     } else {
 
-        std::cout << "zone found!" << std::endl;
+        //std::cout << "zone found!" << std::endl;
         lcm_to_ros::mbot_motor_command_t msg;
         motor_command_pub.publish(msg);
         return State::DRIVE_TO_ZONE;
@@ -211,7 +215,12 @@ SLOSBot::State SLOSBot::drive_to_zone() {
     //run_obj_detection();
     if(!run_drive_ctrl(april_detection, 0.15)) {
         return State::DRIVE_TO_ZONE;
-    } else return State::MATCH_OBJECT;
+    } else {
+        slos_bot::ControlClaw req;
+        req.request.state = slos_bot::ControlClawRequest::OPEN;
+        claw_client.call(req);
+	return State::MATCH_OBJECT;
+    }
 }
 
 void SLOSBot::execute_sm() {

@@ -1,10 +1,11 @@
 <launch>
-	<!-- <include file="$(find openni2_launch)/launch/openni2.launch"/> -->
+	<include file="$(find openni2_launch)/launch/openni2.launch"/>
 	<group ns="lcm_to_ros">
 		<node pkg="lcm_to_ros" type="ODOMETRY_republisher" respawn="false" name="ODOMETRY_republisher" output="screen"/>
 		<node pkg="lcm_to_ros" type="MBOT_MOTOR_COMMAND_republisher" respawn="false" name="MBOT_MOTOR_COMMAND_republisher" output="screen"/>
 	</group>
 	<!--<node pkg="slos_bot" type="slos_bot_node" name="slos_bot_node"/> -->
+	<node pkg="slos_bot" type="claw_controller.py" name="claw_controller_node"/>
 
 	<!-- apriltag_ros continuous detection node -->
 	<node pkg="apriltag_ros" type="apriltag_ros_continuous_node" name="apriltag_ros_continuous_node" clear_params="true" output="screen">

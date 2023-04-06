@@ -27,7 +27,7 @@ class SLOSBot
         void execute_sm();
     private:
         // Robot state
-        State state = State::SEARCH_FOR_ZONE;
+        State state = State::SEARCH_FOR_OBJECT;
         DetectionManager object_detection;
         DetectionManager april_detection;
         cv::Mat cur_rgb;
