@@ -73,7 +73,7 @@ bool SLOSBot::run_obj_detection(bool blue) {
 
     Mat bin_img(hsv_img.size(), 0); 
     if(blue) inRange(hsv_img, Scalar(100, 120, 100), Scalar(130, 255, 255), bin_img);
-    else inRange(hsv_img, Scalar(0, 170, 170), Scalar(20, 255, 255), bin_img);// can probably be 10
+    else inRange(hsv_img, Scalar(0, 130, 130), Scalar(20, 255, 255), bin_img);// can probably be 10
 
     // Noise removal with morphology
     Mat kernel;
@@ -128,9 +128,10 @@ bool SLOSBot::run_obj_detection(bool blue) {
             if(!isnan(center_depth)) {
                 object_detection.update_detection(detectionCenter.x, detectionCenter.y, center_depth, cur_odom);
                 found = true;
-                std::cout << "stopping " << center_depth << std::endl;
                 //april_detection.reset_detection();
                 desired_tag_id = blue ? 0 : 1;
+
+                std::cout << "stopping " << desired_tag_id << std::endl;
             }
         }
     }
@@ -153,7 +154,7 @@ bool SLOSBot::run_drive_ctrl(DetectionManager &detection, float error) {
     auto drive_dir = drive_error/drive_error.norm();
     auto cur_dir = Eigen::Vector2d(cos(cur_odom.theta), sin(cur_odom.theta));
     double ang_error = cur_dir.x()*drive_dir.y() - drive_dir.x()*cur_dir.y();
-    std::cout << "drive error norm " << drive_error.norm() << "ang_error " << ang_error << std::endl;
+    //std::cout << "drive error norm " << drive_error.norm() << "ang_error " << ang_error << std::endl;
 
     bool done = false;
     if(drive_error.norm() < error) {

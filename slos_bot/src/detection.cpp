@@ -21,7 +21,7 @@ Eigen::Vector2d DetectionManager::get_point_in_odom() {
 
 
 void DetectionManager::update_detection(float u, float v, float depth, lcm_to_ros::odometry_t odom) {
-    std::cout << "update detection called " << std::endl;
+    //std::cout << "update detection called " << std::endl;
     this->u = u;
     this->v = v;
     this->depth = depth;
