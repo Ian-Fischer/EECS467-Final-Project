@@ -169,7 +169,7 @@ SLOSBot::State SLOSBot::search_for_object() {
     if(!run_obj_detection()) { 
         // tell the mbot to rotate
         lcm_to_ros::mbot_motor_command_t msg;
-        msg.angular_v = 0.9;
+        msg.angular_v = 0.6;
         motor_command_pub.publish(msg);
         return State::SEARCH_FOR_OBJECT;
     } else {
