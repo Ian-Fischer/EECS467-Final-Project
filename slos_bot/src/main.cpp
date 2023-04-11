@@ -32,7 +32,7 @@ void SLOSBot::april_cb(apriltag_ros::AprilTagDetectionArray a) {
             std::vector<int> pt = a.detections[i].center;
             float center_depth = cur_depth.at<float>(pt[1], pt[0]);
             if(!isnan(center_depth)) {
-                april_detection.update_detection(pt[0], pt[1], center_depth, cur_odom);
+                april_detection.update_detection(pt[0], pt[1], center_depth+0.1, cur_odom);
             }
         }
     }
