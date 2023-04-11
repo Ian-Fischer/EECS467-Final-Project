@@ -234,7 +234,10 @@ SLOSBot::State SLOSBot::reverse(bool rising_edge) {
     motor_command_pub.publish(msg);
 
     if(std::chrono::duration_cast<std::chrono::milliseconds>(now-reverse_time).count() > 1000) {
-        return State::MATCH_OBJECT;
+
+        lcm_to_ros::mbot_motor_command_t msg;
+        motor_command_pub.publish(msg);
+        return State::SEARCH_FOR_OBJECT;
     }
     return State::REVERSE;
 }
