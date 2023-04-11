@@ -25,13 +25,15 @@ SLOSBot::SLOSBot() :
  { } 
 
 void SLOSBot::april_cb(apriltag_ros::AprilTagDetectionArray a) {
-    april_detected = a.detections.size() > 0;
-    std::cout << "april status " <<  april_detected << std::endl;
-    if(april_detected && !cur_depth.empty()) {
-        std::vector<int> pt = a.detections[0].center;
-        float center_depth = cur_depth.at<float>(pt[1], pt[0]);
-        if(!isnan(center_depth)) {
-            april_detection.update_detection(pt[0], pt[1], center_depth, cur_odom);
+    april_detected = false;
+    for(int i = 0; i < a.detections.size(); i++) {
+        if(a.detections[i].id[0] == desired_tag_id && !cur_depth.empty()) {
+            april_detected = true;
+            std::vector<int> pt = a.detections[0].center;
+            float center_depth = cur_depth.at<float>(pt[1], pt[0]);
+            if(!isnan(center_depth)) {
+                april_detection.update_detection(pt[0], pt[1], center_depth, cur_odom);
+            }
         }
     }
 }
@@ -60,7 +62,7 @@ void SLOSBot::rgb_img_cb(sensor_msgs::ImageConstPtr img) {
     }
 }
 
-bool SLOSBot::run_obj_detection() {
+bool SLOSBot::run_obj_detection(bool blue) {
     // Make sure there is a current image
     if(cur_rgb.rows == 0 || cur_rgb.cols == 0 || cur_depth.rows == 0) return false;
     Mat debug_img = cur_rgb.clone();
@@ -70,8 +72,8 @@ bool SLOSBot::run_obj_detection() {
     cvtColor(cur_rgb, hsv_img, COLOR_BGR2HSV);
 
     Mat bin_img(hsv_img.size(), 0); 
-    //inRange(hsv_img, Scalar(100, 120, 100), Scalar(130, 255, 255), bin_img);
-    inRange(hsv_img, Scalar(0, 170, 170), Scalar(20, 255, 255), bin_img);// can probably be 10
+    if(blue) inRange(hsv_img, Scalar(100, 120, 100), Scalar(130, 255, 255), bin_img);
+    else inRange(hsv_img, Scalar(0, 170, 170), Scalar(20, 255, 255), bin_img);// can probably be 10
 
     // Noise removal with morphology
     Mat kernel;
@@ -127,15 +129,17 @@ bool SLOSBot::run_obj_detection() {
                 object_detection.update_detection(detectionCenter.x, detectionCenter.y, center_depth, cur_odom);
                 found = true;
                 std::cout << "stopping " << center_depth << std::endl;
+                //april_detection.reset_detection();
+                desired_tag_id = blue ? 0 : 1;
             }
         }
     }
 
-    imshow("post filter", bin_img);
-    imshow("pre filter", debug_img);
-    imshow("cur depth", cur_depth);
+    //imshow("post filter", bin_img);
+    //imshow("pre filter", debug_img);
+    //imshow("cur depth", cur_depth);
     //imwrite("/home/ashwin/Desktop/blah.jpg", cur_rgb);
-    waitKey(10);
+    //waitKey(10);
 
     return found;
 }
@@ -166,7 +170,7 @@ bool SLOSBot::run_drive_ctrl(DetectionManager &detection, float error) {
 }
 
 SLOSBot::State SLOSBot::search_for_object() {
-    if(!run_obj_detection()) { 
+    if(!run_obj_detection() && !run_obj_detection(true)) { 
         // tell the mbot to rotate
         lcm_to_ros::mbot_motor_command_t msg;
         msg.angular_v = 0.6;
@@ -184,7 +188,8 @@ SLOSBot::State SLOSBot::search_for_object() {
 }
 
 SLOSBot::State SLOSBot::drive_to_object() {
-    run_obj_detection();
+    bool blue = desired_tag_id == 0;
+    run_obj_detection(blue);
     if(!run_drive_ctrl(object_detection)) {
         return State::DRIVE_TO_OBJECT;
     } else {

@@ -39,6 +39,7 @@ class SLOSBot
         lcm_to_ros::odometry_t cur_odom;
         bool april_detected = false;
         std::chrono::time_point<std::chrono::system_clock> reverse_time;
+        int desired_tag_id = 0;
 
         // Ros stuff
         ros::NodeHandle nh;
@@ -57,7 +58,7 @@ class SLOSBot
         SLOSBot::State reverse(bool);
 
         // Shared state functionality and helpers
-        bool run_obj_detection();
+        bool run_obj_detection(bool blue=false);
         bool run_drive_ctrl(DetectionManager &detection, float error=0.04);
 
         // Callbacks
